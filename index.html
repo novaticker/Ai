@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>AI 탐색기 v4</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080808;--bg2:#111;--bg3:#1a1a1a;--bg4:#222;
+  --b1:rgba(255,255,255,0.06);--b2:rgba(255,255,255,0.12);
+  --t1:#f0f0f0;--t2:#999;--t3:#555;
+  --acc:#00d4aa;
+  --up:#ef4444;--dn:#3b82f6;
+  --r:10px;--rs:6px;
+}
+html{background:var(--bg);color:var(--t1);font-family:-apple-system,'Noto Sans KR',sans-serif;font-size:14px;-webkit-tap-highlight-color:transparent}
+body{min-height:100vh;display:flex;flex-direction:column}
+
+.hd{position:sticky;top:0;z-index:200;background:var(--bg2);border-bottom:1px solid var(--b1);padding:10px 16px;display:flex;align-items:center;justify-content:space-between}
+.hd-l{display:flex;align-items:center;gap:10px}
+.logo{width:36px;height:36px;background:var(--acc);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#000;flex-shrink:0}
+.app-nm{font-size:15px;font-weight:700}
+.app-sb{font-size:10px;color:var(--t3)}
+.live{display:flex;align-items:center;gap:5px}
+.dot{width:7px;height:7px;border-radius:50%;background:#333}
+.dot.on{background:#22c55e;animation:blink 1.8s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.ct{font-size:11px;color:var(--t3)}
+
+.api-box{background:var(--bg2);border:1px solid var(--b2);border-radius:var(--r);margin:12px;padding:16px}
+.api-box h3{font-size:13px;color:var(--t2);margin-bottom:12px}
+.api-box input{display:block;width:100%;padding:10px 12px;margin-bottom:8px;font-size:13px;font-family:monospace;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--rs);color:var(--t1);outline:none}
+.api-box input:focus{border-color:var(--acc)}
+.btn-conn{width:100%;padding:12px;font-size:15px;font-weight:700;background:var(--acc);color:#000;border:none;border-radius:var(--rs);cursor:pointer}
+.btn-conn:disabled{background:#2a2a2a;color:var(--t3)}
+.api-hint{font-size:11px;color:var(--t3);text-align:center;margin-top:8px}
+
+.mkt{background:var(--bg2);border-bottom:1px solid var(--b1);padding:8px 16px;display:flex;gap:16px;overflow-x:auto;scrollbar-width:none}
+.mkt::-webkit-scrollbar{display:none}
+.mi{display:flex;flex-direction:column;gap:1px;min-width:64px}
+.mi-n{font-size:10px;color:var(--t3)}
+.mi-v{font-size:13px;font-weight:700}
+.mi-c{font-size:11px}
+.up{color:#ef4444}.dn{color:#3b82f6}
+
+.mode-tabs{display:flex;background:var(--bg3);margin:10px 12px 0;border-radius:var(--r);padding:3px;gap:3px}
+.mode-tab{flex:1;padding:10px 6px;font-size:13px;font-weight:700;text-align:center;border-radius:8px;cursor:pointer;color:var(--t3);transition:all .2s}
+.mode-tab.long.active{background:#0f2d1f;color:#22c55e}
+.mode-tab.short.active{background:#2d0f0f;color:#f97316}
+
+.mkt-sel{display:flex;gap:6px;padding:10px 12px 0;overflow-x:auto;scrollbar-width:none}
+.mkt-sel::-webkit-scrollbar{display:none}
+.ms-btn{padding:6px 14px;font-size:12px;border-radius:20px;border:1px solid var(--b2);background:transparent;color:var(--t2);cursor:pointer;white-space:nowrap;font-weight:600}
+.ms-btn.active{background:var(--acc);color:#000;border-color:var(--acc)}
+
+.tabs{background:var(--bg2);border-bottom:1px solid var(--b1);display:flex;overflow-x:auto;scrollbar-width:none;margin-top:8px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:1;min-width:72px;padding:11px 4px;font-size:12px;color:var(--t3);cursor:pointer;text-align:center;border-bottom:2px solid transparent;white-space:nowrap}
+.tab.active{color:var(--acc);border-bottom-color:var(--acc);font-weight:600}
+.badge{display:inline-block;background:var(--up);color:#fff;font-size:10px;padding:1px 5px;border-radius:8px;margin-left:3px}
+
+.content{flex:1;padding:12px;display:flex;flex-direction:column;gap:10px}
+.pane{display:none;flex-direction:column;gap:10px}
+.pane.active{display:flex}
+
+.frow{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.frow::-webkit-scrollbar{display:none}
+.fb{padding:5px 12px;font-size:12px;border-radius:20px;border:1px solid var(--b2);background:transparent;color:var(--t2);cursor:pointer;white-space:nowrap}
+.fb.active{background:var(--acc);color:#000;border-color:var(--acc);font-weight:700}
+
+.sh{display:flex;align-items:center;justify-content:space-between}
+.sh-t{font-size:13px;font-weight:500;color:var(--t2)}
+.btn-r{padding:6px 10px;font-size:12px;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--rs);color:var(--t2);cursor:pointer}
+
+/* 카드 */
+.card{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:14px;cursor:pointer;border-left:3px solid var(--b1);margin-bottom:0}
+.card.S{border-left-color:#22c55e}
+.card.A{border-left-color:#eab308}
+.card.B{border-left-color:#f97316}
+.card.C{border-left-color:#ef4444}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.sn{font-size:15px;font-weight:700}
+.sc-meta{font-size:11px;color:var(--t3);margin-top:2px}
+.grade{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;flex-shrink:0}
+.grade.S{background:rgba(34,197,94,.15);color:#22c55e;border:2px solid rgba(34,197,94,.3)}
+.grade.A{background:rgba(234,179,8,.12);color:#eab308;border:2px solid rgba(234,179,8,.3)}
+.grade.B{background:rgba(249,115,22,.12);color:#f97316;border:2px solid rgba(249,115,22,.3)}
+.grade.C{background:rgba(239,68,68,.12);color:#ef4444;border:2px solid rgba(239,68,68,.3)}
+.grade-sub{font-size:10px;color:var(--t3);text-align:right;margin-top:2px}
+
+/* 기법 태그 */
+.techs{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.tech{font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid;font-weight:600}
+.tech.hit{background:rgba(0,212,170,.12);color:#00d4aa;border-color:rgba(0,212,170,.3)}
+.tech.miss{background:rgba(255,255,255,.03);color:var(--t3);border-color:var(--b1);text-decoration:line-through;opacity:.5}
+
+.pr-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.pr-m{font-size:16px;font-weight:700}
+.pr-c{font-size:13px;font-weight:600}
+
+.vr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.vl{font-size:11px;color:var(--t3);width:52px;flex-shrink:0}
+.vb{flex:1;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden}
+.vf{height:100%;border-radius:2px}
+.vf.S{background:#22c55e}.vf.A{background:#eab308}.vf.B{background:#f97316}.vf.C{background:#ef4444}
+.vn{font-size:11px;color:var(--t2);width:30px;text-align:right;flex-shrink:0}
+
+/* 충족 기법 카운터 */
+.match-bar{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 10px;background:var(--bg3);border-radius:var(--rs)}
+.match-count{font-size:18px;font-weight:800;color:var(--acc);min-width:28px}
+.match-label{font-size:12px;color:var(--t2);line-height:1.4}
+.match-score-bar{flex:1;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.match-score-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--acc),#22c55e)}
+
+/* 매수/매도 박스 */
+.trade-box{display:flex;gap:6px;margin-bottom:8px}
+.tb{flex:1;background:var(--bg3);border-radius:var(--rs);padding:8px 10px}
+.tb-l{font-size:10px;color:var(--t3);margin-bottom:3px}
+.tb-v{font-size:13px;font-weight:700}
+.tb-v.buy{color:#22c55e}.tb-v.sell{color:#ef4444}.tb-v.stop{color:#f97316}
+.tb-s{font-size:10px;color:var(--t3);margin-top:1px}
+
+/* 예측 그리드 */
+.pred-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
+.pg{background:var(--bg3);border-radius:var(--rs);padding:8px 10px}
+.pg-l{font-size:10px;color:var(--t3);margin-bottom:3px}
+.pg-v{font-size:13px;font-weight:700}
+.pg-v.pos{color:#22c55e}.pg-v.warn{color:#eab308}.pg-v.neg{color:#ef4444}.pg-v.neu{color:var(--t2)}
+
+/* 상세 */
+.detail{display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--b1)}
+.detail.open{display:block}
+.d-sec{margin-bottom:14px}
+.d-t{font-size:11px;color:var(--acc);font-weight:700;margin-bottom:8px;letter-spacing:.3px}
+
+/* 기법 상세 패널 */
+.tech-detail{display:flex;flex-direction:column;gap:6px}
+.td-item{background:var(--bg3);border-radius:var(--rs);padding:10px 12px;border-left:3px solid var(--b1)}
+.td-item.hit{border-left-color:var(--acc)}
+.td-item.miss{border-left-color:var(--b1);opacity:.6}
+.td-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.td-name{font-size:13px;font-weight:700}
+.td-name.hit{color:var(--t1)}.td-name.miss{color:var(--t3)}
+.td-score{font-size:12px;font-weight:700;color:var(--acc)}
+.td-desc{font-size:12px;color:var(--t2);line-height:1.5}
+.td-why{font-size:11px;color:var(--t3);margin-top:3px;font-style:italic}
+.td-badge{font-size:10px;padding:2px 7px;border-radius:10px;white-space:nowrap}
+.td-badge.hit{background:rgba(0,212,170,.15);color:var(--acc)}
+.td-badge.miss{background:rgba(255,255,255,.05);color:var(--t3)}
+
+/* AI 설명 박스 */
+.ai-explain{background:rgba(0,212,170,.05);border:1px solid rgba(0,212,170,.15);border-radius:var(--rs);padding:12px;margin-bottom:10px}
+.ai-explain-t{font-size:11px;color:var(--acc);font-weight:700;margin-bottom:6px}
+.ai-explain-body{font-size:12px;color:var(--t2);line-height:1.7}
+
+.btn-ai{width:100%;padding:10px;font-size:12px;background:rgba(0,212,170,.08);color:var(--acc);border:1px solid rgba(0,212,170,.2);border-radius:var(--rs);cursor:pointer;margin-top:4px;font-weight:600}
+
+/* 뉴스 */
+.nc{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:14px}
+.nt{display:flex;gap:8px;justify-content:space-between;margin-bottom:6px}
+.ntx{font-size:13px;font-weight:600;line-height:1.4;flex:1}
+.imp{font-size:11px;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.imp.strong{background:rgba(239,68,68,.15);color:#f87171}
+.imp.mid{background:rgba(234,179,8,.12);color:#fbbf24}
+.imp.low{background:rgba(34,197,94,.1);color:#4ade80}
+.ns{font-size:12px;color:var(--t2);line-height:1.6;margin-bottom:7px}
+.nf{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:5px}
+.stags{display:flex;flex-wrap:wrap;gap:4px}
+.stag{font-size:11px;padding:2px 7px;border-radius:20px;background:rgba(0,212,170,.08);color:var(--acc);border:1px solid rgba(0,212,170,.18)}
+.ctag{font-size:11px;padding:2px 7px;border-radius:20px;background:var(--bg3);color:var(--t3);border:1px solid var(--b1)}
+
+/* 설정 */
+.sc{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.sc h3{font-size:13px;font-weight:600;color:var(--t2);margin-bottom:12px}
+.si{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.si:last-child{margin-bottom:0}
+.si-l{font-size:13px}.si-d{font-size:11px;color:var(--t3);margin-top:2px}
+.si input[type=number]{width:76px;padding:7px 8px;font-size:13px;text-align:center;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--rs);color:var(--t1);outline:none}
+input[type=range]{accent-color:var(--acc);flex:1}
+.rw{display:flex;align-items:center;gap:8px;min-width:130px}
+.rv{font-size:13px;color:var(--acc);min-width:36px;text-align:right}
+.sc input[type=password]{display:block;width:100%;padding:9px 12px;font-size:13px;font-family:monospace;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--rs);color:var(--t1);outline:none;margin-bottom:6px}
+
+.empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:40px 20px;color:var(--t3);text-align:center}
+.empty-i{font-size:36px}.empty-t{font-size:13px;line-height:1.6}
+.loading{display:flex;flex-direction:column;align-items:center;gap:12px;padding:40px}
+.spin{width:26px;height:26px;border:2px solid var(--b2);border-top-color:var(--acc);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.lt{font-size:13px;color:var(--t2)}
+.prog-box{background:var(--bg3);border-radius:var(--r);padding:14px}
+.prog-t{font-size:12px;color:var(--t2);margin-bottom:8px}
+.prog-track{height:4px;background:var(--bg4);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:var(--acc);border-radius:2px;transition:width .4s}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--b2);border-radius:var(--r);padding:10px 18px;font-size:13px;z-index:999;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.toast.ok{border-color:var(--acc);color:var(--acc)}
+.toast.err{border-color:var(--up);color:#f87171}
+
+.legend{display:flex;gap:10px;flex-wrap:wrap;padding:2px 0}
+.lg-i{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--t2)}
+.lg-d{width:9px;height:9px;border-radius:50%}
+
+@media(min-width:640px){
+  .content,.api-box,.mode-tabs,.mkt-sel{max-width:680px;margin-left:auto;margin-right:auto;width:100%}
+  .api-box{margin-top:12px;margin-bottom:0}
+}
+</style>
+</head>
+<body>
+
+<div class="hd">
+  <div class="hd-l">
+    <div class="logo">AI</div>
+    <div>
+      <div class="app-nm">AI 탐색기 v4</div>
+      <div class="app-sb">이평선 기법 기반 · 코스피·코스닥·나스닥</div>
+    </div>
+  </div>
+  <div class="live">
+    <div class="dot" id="dot"></div>
+    <span class="ct" id="ct">미연결</span>
+  </div>
+</div>
+
+<div class="api-box" id="api-box">
+  <h3>🔑 KIS API 연결</h3>
+  <input type="password" id="k-key" placeholder="APP Key" autocomplete="off"/>
+  <input type="password" id="k-sec" placeholder="APP Secret" autocomplete="off"/>
+  <button class="btn-conn" id="btn-conn" onclick="connectAPI()">연결하기</button>
+  <div class="api-hint">키는 서버 메모리에만 사용 · 저장 없음</div>
+</div>
+
+<div class="mkt">
+  <div class="mi"><div class="mi-n">KOSPI</div><div class="mi-v" id="m-kp">—</div><div class="mi-c" id="m-kp-c">—</div></div>
+  <div class="mi"><div class="mi-n">KOSDAQ</div><div class="mi-v" id="m-kd">—</div><div class="mi-c" id="m-kd-c">—</div></div>
+  <div class="mi"><div class="mi-n">나스닥(QQQ)</div><div class="mi-v" id="m-nq">—</div><div class="mi-c" id="m-nq-c">—</div></div>
+  <div class="mi"><div class="mi-n">USD/KRW</div><div class="mi-v" id="m-fx">—</div><div class="mi-c" style="color:var(--t3)">원</div></div>
+  <div class="mi"><div class="mi-n">탐지</div><div class="mi-v" id="m-cnt">—</div><div class="mi-c" style="color:var(--t3)">건</div></div>
+  <div class="mi"><div class="mi-n">갱신</div><div class="mi-v" id="m-time" style="font-size:11px">—</div><div class="mi-c"></div></div>
+</div>
+
+<!-- 장 상태 배너 -->
+<div id="session-bar" style="padding:7px 16px;font-size:12px;font-weight:600;text-align:center;display:none"></div>
+
+<div class="mode-tabs">
+  <div class="mode-tab long active" onclick="switchMode('long',this)">📈 장기투자</div>
+  <div class="mode-tab short" onclick="switchMode('short',this)">⚡ 단타</div>
+</div>
+
+<div class="mkt-sel">
+  <button class="ms-btn active" onclick="switchMkt('ALL',this)">전체</button>
+  <button class="ms-btn" onclick="switchMkt('KR',this)">🇰🇷 코스피/코스닥</button>
+  <button class="ms-btn" onclick="switchMkt('US',this)">🇺🇸 나스닥</button>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('detect',this)">🔍 탐지결과 <span class="badge" id="badge">0</span></div>
+  <div class="tab" onclick="switchTab('surge',this)">🚀 급등종목</div>
+  <div class="tab" onclick="switchTab('news',this)">📰 뉴스분석</div>
+  <div class="tab" onclick="switchTab('settings',this)">⚙️ 설정</div>
+</div>
+
+<div class="content">
+  <div class="pane active" id="pane-detect">
+    <div class="sh">
+      <div class="sh-t" id="detect-title">📈 장기투자 유망 종목</div>
+      <button class="btn-r" onclick="runDetect()">↺ 분석</button>
+    </div>
+    <div class="legend">
+      <div class="lg-i"><div class="lg-d" style="background:#22c55e"></div>S — 강력매수</div>
+      <div class="lg-i"><div class="lg-d" style="background:#eab308"></div>A — 매수고려</div>
+      <div class="lg-i"><div class="lg-d" style="background:#f97316"></div>B — 관심</div>
+      <div class="lg-i"><div class="lg-d" style="background:#ef4444"></div>C — 관망</div>
+    </div>
+    <div class="frow" id="filter-row"></div>
+    <div id="list-detect">
+      <div class="empty"><div class="empty-i">🔍</div><div class="empty-t">API 연결 후 분석 시작<br>이평선 기법으로 유망 종목을 탐지합니다</div></div>
+    </div>
+  </div>
+
+  <div class="pane" id="pane-surge">
+    <div class="sh">
+      <div class="sh-t">🚀 실시간 급등 종목</div>
+      <button class="btn-r" onclick="fetchSurge()">↺ 갱신</button>
+    </div>
+    <div id="list-surge"><div class="empty"><div class="empty-i">🚀</div><div class="empty-t">API 연결 후 표시됩니다</div></div></div>
+  </div>
+
+  <div class="pane" id="pane-news">
+    <div class="sh">
+      <div class="sh-t">📰 AI 뉴스 분석</div>
+      <button class="btn-r" onclick="fetchNews()">↺ 분석</button>
+    </div>
+    <div id="list-news"><div class="empty"><div class="empty-i">📰</div><div class="empty-t">설정 탭에서 Claude API 키 입력 후<br>분석 버튼을 누르세요</div></div></div>
+  </div>
+
+  <div class="pane" id="pane-settings">
+    <div class="sc">
+      <h3>🤖 Claude API (AI 심층분석)</h3>
+      <input type="password" id="claude-key" placeholder="Claude API Key (sk-ant-...)" autocomplete="off"/>
+      <div style="font-size:11px;color:var(--t3)">선택사항 — 뉴스·종목 AI 분석에 사용</div>
+    </div>
+    <div class="sc">
+      <h3>📈 장기투자 탐지 기준</h3>
+      <div class="si"><div><div class="si-l">최소 충족 기법 수</div><div class="si-d">몇 가지 이상 충족 시 표시</div></div><input type="number" id="cfg-long-min" value="2" min="1" max="10"/></div>
+      <div class="si"><div><div class="si-l">최소 점수</div><div class="si-d">이 점수 이상만 표시</div></div><input type="number" id="cfg-long-score" value="30" min="0" max="100"/></div>
+    </div>
+    <div class="sc">
+      <h3>⚡ 단타 탐지 기준</h3>
+      <div class="si"><div><div class="si-l">최소 충족 기법 수</div><div class="si-d">몇 가지 이상 충족 시 표시</div></div><input type="number" id="cfg-short-min" value="2" min="1" max="8"/></div>
+      <div class="si"><div><div class="si-l">최소 점수</div><div class="si-d">이 점수 이상만 표시</div></div><input type="number" id="cfg-short-score" value="40" min="0" max="100"/></div>
+      <div class="si"><div><div class="si-l">최소 거래량 배율</div><div class="si-d">전일 대비 최소 배수</div></div><input type="number" id="cfg-short-vol" value="2" min="1" max="20" step="0.5"/></div>
+    </div>
+    <div class="sc">
+      <h3>⏱ 자동 갱신</h3>
+      <div class="si">
+        <div><div class="si-l">갱신 주기</div></div>
+        <div class="rw"><input type="range" min="60" max="600" value="120" step="30" id="inp-iv" oninput="document.getElementById('lbl-iv').textContent=this.value+'초'"/><span class="rv" id="lbl-iv">120초</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════
+   전역 상태
+══════════════════════════════════════ */
+const S={token:'',appkey:'',appsecret:'',connected:false,mode:'long',market:'ALL',filter:'all',results:[],timer:null};
+
+/* ══════════════════════════════════════
+   기법 정의 — 장기투자 (이평선 기반)
+══════════════════════════════════════ */
+const LONG_TECHS = [
+  {
+    key:'golden_cross',
+    name:'골든크로스',
+    desc:'5일선이 20일선을 하향 돌파 후 재상향 — 단기 상승 전환 신호',
+    maxScore:20,
+    check(h,s){
+      if(h.length<25) return {hit:false,why:'데이터 부족'};
+      const ma5=avg(h,0,5),ma20=avg(h,0,20),ma5_prev=avg(h,1,5),ma20_prev=avg(h,1,20);
+      const hit=ma5>ma20&&ma5_prev<=ma20_prev;
+      return {hit,score:hit?20:0,why:hit?`5일선(${ma5.toFixed(0)}) > 20일선(${ma20.toFixed(0)}) 골든크로스 발생`:`5일선(${ma5?.toFixed(0)}) vs 20일선(${ma20?.toFixed(0)}) — 미발생`};
+    }
+  },
+  {
+    key:'ma_alignment',
+    name:'이평선 정배열',
+    desc:'5>20>60>120 순서로 배열 — 강한 상승 추세 확인',
+    maxScore:25,
+    check(h,s){
+      if(h.length<120) return {hit:false,why:'120일 데이터 부족',score:0};
+      const ma5=avg(h,0,5),ma20=avg(h,0,20),ma60=avg(h,0,60),ma120=avg(h,0,120);
+      const full=ma5>ma20&&ma20>ma60&&ma60>ma120;
+      const partial=ma5>ma20&&ma20>ma60;
+      if(full) return {hit:true,score:25,why:`완전 정배열 — 5(${ma5.toFixed(0)})>20(${ma20.toFixed(0)})>60(${ma60.toFixed(0)})>120(${ma120.toFixed(0)})`};
+      if(partial) return {hit:true,score:15,why:`부분 정배열 — 5>20>60 달성, 120일선 아직 미충족`};
+      return {hit:false,score:0,why:`역배열 상태 — 정배열 전환 대기 중`};
+    }
+  },
+  {
+    key:'reverse_to_align',
+    name:'역배열→정배열 전환',
+    desc:'역배열에서 정배열로 전환되는 초기 — SOXL 류 폭등 직전 패턴',
+    maxScore:30,
+    check(h,s){
+      if(h.length<120) return {hit:false,score:0,why:'데이터 부족'};
+      const ma5=avg(h,0,5),ma20=avg(h,0,20),ma60=avg(h,0,60),ma120=avg(h,0,120);
+      const ma5_p=avg(h,20,5),ma20_p=avg(h,20,20);
+      // 현재 5>20이고, 20일 전엔 5<20이었으면 전환
+      const reversing=ma5>ma20&&ma5_p<ma20_p&&ma20<ma60;
+      if(reversing) return {hit:true,score:30,why:`역배열 탈출 초기! 5일선이 20일선 돌파. 60일선(${ma60.toFixed(0)}) 돌파 시 본격 상승`};
+      return {hit:false,score:0,why:`역배열 유지 — 5일선(${ma5?.toFixed(0)}) vs 20일선(${ma20?.toFixed(0)})`};
+    }
+  },
+  {
+    key:'ma60_break',
+    name:'60일선 첫 돌파',
+    desc:'가격이 60일선을 처음 상향 돌파 — 중기 추세 전환 핵심 신호',
+    maxScore:20,
+    check(h,s){
+      if(h.length<65) return {hit:false,score:0,why:'데이터 부족'};
+      const price=parseFloat(h[0]?.stck_clpr||h[0]?.clos||0);
+      const ma60=avg(h,0,60);
+      const price_prev=parseFloat(h[5]?.stck_clpr||h[5]?.clos||0);
+      const hit=price>ma60&&price_prev<ma60;
+      return {hit,score:hit?20:0,why:hit?`60일선(${ma60.toFixed(0)}) 상향 돌파 — 중기 추세 전환`:`현재가(${price.toFixed(0)}) vs 60일선(${ma60.toFixed(0)})`};
+    }
+  },
+  {
+    key:'vol_accumulation',
+    name:'거래량 바닥 축적',
+    desc:'저가권에서 거래량이 꾸준히 늘어나는 패턴 — 세력 매집 신호',
+    maxScore:20,
+    check(h,s){
+      if(h.length<40) return {hit:false,score:0,why:'데이터 부족'};
+      const recentVol=avg_vol(h,0,10);
+      const oldVol=avg_vol(h,20,10);
+      const ratio=recentVol/(oldVol||1);
+      const hit=ratio>=1.5;
+      return {hit,score:hit?Math.min(20,Math.round(ratio*7)):0,why:hit?`최근 10일 거래량이 이전 대비 ${ratio.toFixed(1)}배 — 매집 신호`:`거래량 증가 미확인 (${ratio.toFixed(1)}배)`};
+    }
+  },
+  {
+    key:'box_break',
+    name:'박스권 돌파',
+    desc:'일정 기간 횡보 후 상단 돌파 — 눌림목 끝나고 재상승 시작',
+    maxScore:15,
+    check(h,s){
+      if(h.length<30) return {hit:false,score:0,why:'데이터 부족'};
+      const price=parseFloat(h[0]?.stck_clpr||h[0]?.clos||0);
+      const boxHigh=Math.max(...h.slice(5,25).map(d=>parseFloat(d.stck_hgpr||d.modp||0)).filter(p=>p>0));
+      const hit=price>boxHigh&&boxHigh>0;
+      return {hit,score:hit?15:0,why:hit?`20일 박스 상단(${boxHigh.toFixed(0)}) 돌파 — 추가 상승 모멘텀`:`박스 상단(${boxHigh?.toFixed(0)}) 미돌파`};
+    }
+  },
+  {
+    key:'ma120_support',
+    name:'120일선 지지 반등',
+    desc:'120일선에서 강하게 반등 — 장기 지지선 확인, 안전한 매수 구간',
+    maxScore:15,
+    check(h,s){
+      if(h.length<125) return {hit:false,score:0,why:'데이터 부족'};
+      const price=parseFloat(h[0]?.stck_clpr||h[0]?.clos||0);
+      const ma120=avg(h,0,120);
+      const low_recent=Math.min(...h.slice(0,5).map(d=>parseFloat(d.stck_lwpr||d.mxdp||0)).filter(p=>p>0));
+      const nearMA=(Math.abs(price-ma120)/ma120)*100;
+      const hit=nearMA<3&&price>ma120&&low_recent<=ma120*1.02;
+      return {hit,score:hit?15:0,why:hit?`120일선(${ma120.toFixed(0)}) 터치 후 반등 — 장기 지지 확인`:`120일선(${ma120?.toFixed(0)}) 거리: ${nearMA?.toFixed(1)}%`};
+    }
+  },
+  {
+    key:'higher_low',
+    name:'고점·저점 상승',
+    desc:'저점이 계속 높아지는 패턴 — 상승 추세의 가장 기본 조건',
+    maxScore:10,
+    check(h,s){
+      if(h.length<30) return {hit:false,score:0,why:'데이터 부족'};
+      const lows=h.slice(0,30).map(d=>parseFloat(d.stck_lwpr||d.mxdp||0)).filter(p=>p>0);
+      const highs=h.slice(0,30).map(d=>parseFloat(d.stck_hgpr||d.modp||0)).filter(p=>p>0);
+      if(lows.length<3||highs.length<3) return {hit:false,score:0,why:'데이터 부족'};
+      const risingLow=lows[0]>lows[Math.floor(lows.length/2)]&&lows[Math.floor(lows.length/2)]>lows[lows.length-1];
+      const risingHigh=highs[0]>highs[Math.floor(highs.length/2)];
+      const hit=risingLow&&risingHigh;
+      return {hit,score:hit?10:0,why:hit?'고점·저점 모두 상승 — 정상적인 상승 추세 구조':'저점 하락 — 추세 미형성'};
+    }
+  },
+  {
+    key:'sector_momentum',
+    name:'섹터 모멘텀',
+    desc:'AI·반도체·2차전지·바이오·로봇 등 메가트렌드 섹터 소속',
+    maxScore:10,
+    check(h,s){
+      const nm=(s.name||'').toLowerCase();
+      const kw=['반도체','ai','전지','배터리','바이오','로봇','수소','방산','엔터','게임','nvda','amd','tsmc','soxl','smh','arkk'];
+      const hit=kw.some(k=>nm.includes(k));
+      return {hit,score:hit?10:0,why:hit?`메가트렌드 섹터 종목 — 섹터 동반 상승 수혜 가능`:'주요 성장 섹터 미해당'};
+    }
+  },
+];
+
+/* ══════════════════════════════════════
+   기법 정의 — 단타 (단기 기법)
+══════════════════════════════════════ */
+const SHORT_TECHS = [
+  {
+    key:'vol_explosion',
+    name:'거래량 폭발',
+    desc:'전일 대비 거래량 3배 이상 — 세력 진입 핵심 신호',
+    maxScore:25,
+    check(h,s){
+      const ratio=s.volRatio||1;
+      const hit=ratio>=3;
+      return {hit,score:hit?Math.min(25,Math.round(ratio*5)):ratio>=2?8:0,why:hit?`거래량 ${ratio.toFixed(1)}배 폭발 — 세력 진입 강력 시그널`:`거래량 ${ratio.toFixed(1)}배 — 기준 미달(3배 이상 필요)`};
+    }
+  },
+  {
+    key:'vwap_break',
+    name:'VWAP 상향 돌파',
+    desc:'당일 거래량 가중 평균가 돌파 — 매수 주도 세력 우위',
+    maxScore:20,
+    check(h,s){
+      const hit=s.change>0&&(s.volRatio||1)>=1.5;
+      return {hit,score:hit?Math.min(20,Math.round(s.change*2)):0,why:hit?`+${s.change.toFixed(2)}% 상승 + 거래량 동반 — VWAP 돌파 가능성 높음`:`상승 또는 거래량 조건 미충족`};
+    }
+  },
+  {
+    key:'ma5_break',
+    name:'5일선 돌파',
+    desc:'가격이 5일선 위로 올라서는 순간 — 단기 방향 전환',
+    maxScore:15,
+    check(h,s){
+      if(h.length<6) return {hit:false,score:0,why:'데이터 부족'};
+      const price=parseFloat(h[0]?.stck_clpr||h[0]?.clos||0);
+      const ma5=avg(h,0,5);
+      const price_prev=parseFloat(h[1]?.stck_clpr||h[1]?.clos||0);
+      const hit=price>ma5&&price_prev<=ma5;
+      return {hit,score:hit?15:price>ma5?8:0,why:hit?`5일선(${ma5.toFixed(0)}) 돌파 — 단기 상승 시작`:price>ma5?`5일선 위 유지 중 (${ma5.toFixed(0)})`:`5일선(${ma5.toFixed(0)}) 아래 — 미돌파`};
+    }
+  },
+  {
+    key:'gori_pattern',
+    name:'공구리 패턴',
+    desc:'소폭 상승 + 거래량 폭발 조합 — 상승 직전 세력 매집 완료',
+    maxScore:20,
+    check(h,s){
+      const chg=s.change||0,vr=s.volRatio||1;
+      const hit=chg>=1&&chg<=7&&vr>=3;
+      return {hit,score:hit?Math.min(20,Math.round(vr*3)):0,why:hit?`+${chg.toFixed(1)}% 소폭 상승 + 거래량 ${vr.toFixed(1)}배 — 전형적 공구리 패턴`:`조건 미충족 (등락: ${chg.toFixed(1)}%, 거래량: ${vr.toFixed(1)}배)`};
+    }
+  },
+  {
+    key:'prev_high_break',
+    name:'전고점 돌파',
+    desc:'직전 고점을 넘어서는 순간 — 매물대 소화 완료, 다음 목표 없음',
+    maxScore:15,
+    check(h,s){
+      if(h.length<10) return {hit:false,score:0,why:'데이터 부족'};
+      const price=parseFloat(h[0]?.stck_clpr||h[0]?.clos||0);
+      const prevHigh=Math.max(...h.slice(1,10).map(d=>parseFloat(d.stck_hgpr||d.modp||0)).filter(p=>p>0));
+      const hit=price>prevHigh;
+      return {hit,score:hit?15:0,why:hit?`전고점(${prevHigh.toFixed(0)}) 돌파 — 저항 없는 구간 진입`:`전고점(${prevHigh?.toFixed(0)}) 미돌파`};
+    }
+  },
+  {
+    key:'price_accel',
+    name:'가격 가속도',
+    desc:'상승폭이 점점 커지는 패턴 — 추세 가속, 단기 급등 임박',
+    maxScore:10,
+    check(h,s){
+      const chg=s.change||0;
+      const hit=chg>=5;
+      return {hit,score:hit?Math.min(10,Math.round(chg)):chg>=3?5:0,why:hit?`+${chg.toFixed(1)}% 강한 상승 — 가격 가속 구간`:`+${chg.toFixed(1)}% — 가속 기준(5%) 미달`};
+    }
+  },
+  {
+    key:'opening_strength',
+    name:'시가 강세',
+    desc:'전일 종가 대비 강하게 시작 — 갭상승 후 추가 상승 가능성',
+    maxScore:10,
+    check(h,s){
+      if(h.length<2) return {hit:false,score:0,why:'데이터 부족'};
+      const open=parseFloat(h[0]?.stck_oprc||h[0]?.open||0);
+      const prevClose=parseFloat(h[1]?.stck_clpr||h[1]?.clos||0);
+      const gapPct=prevClose>0?((open-prevClose)/prevClose*100):0;
+      const hit=gapPct>=1;
+      return {hit,score:hit?Math.min(10,Math.round(gapPct*2)):0,why:hit?`갭상승 +${gapPct.toFixed(1)}% — 시가 강세`:`갭상승 없음 (${gapPct.toFixed(1)}%)`};
+    }
+  },
+  {
+    key:'short_vol_trend',
+    name:'단기 거래량 증가 추세',
+    desc:'3~5일간 거래량이 지속 증가 — 관심 증가 신호',
+    maxScore:10,
+    check(h,s){
+      if(h.length<5) return {hit:false,score:0,why:'데이터 부족'};
+      const vols=h.slice(0,5).map(d=>parseInt(d.acml_vol||d.tvol||0));
+      const increasing=vols[0]>vols[1]&&vols[1]>vols[2];
+      return {hit:increasing,score:increasing?10:0,why:increasing?`3일 연속 거래량 증가 — ${vols[2].toLocaleString()}→${vols[1].toLocaleString()}→${vols[0].toLocaleString()}`:'거래량 증가 추세 없음'};
+    }
+  },
+];
+
+/* ══════════════════════════════════════
+   유틸 함수
+══════════════════════════════════════ */
+function avg(h,offset,n){
+  const slice=h.slice(offset,offset+n);
+  const vals=slice.map(d=>parseFloat(d.stck_clpr||d.clos||d.ovrs_nmix_prpr||0)).filter(v=>v>0);
+  return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
+}
+function avg_vol(h,offset,n){
+  const slice=h.slice(offset,offset+n);
+  const vals=slice.map(d=>parseInt(d.acml_vol||d.tvol||0)).filter(v=>v>0);
+  return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
+}
+function toast(msg,type=''){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast show '+type;
+  clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),3000);
+}
+function nowStr(){const d=new Date();return d.getHours()+':'+String(d.getMinutes()).padStart(2,'0')}
+function fmt(n){return Number(n).toLocaleString('ko-KR')}
+function fmtUSD(n){return '$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function getDateStr(offset){
+  const d=new Date(); d.setDate(d.getDate()+offset);
+  return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
+}
+
+/* ══════════════════════════════════════
+   탭/모드 전환
+══════════════════════════════════════ */
+function switchTab(name,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('pane-'+name).classList.add('active');
+}
+function switchMode(mode,el){
+  S.mode=mode; S.filter='all';
+  document.querySelectorAll('.mode-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('detect-title').textContent=mode==='long'?'📈 장기투자 유망 종목':'⚡ 단타 급등 조짐 종목';
+  renderFilterRow();
+  if(S.connected) runDetect();
+}
+function switchMkt(mkt,el){
+  S.market=mkt;
+  document.querySelectorAll('.ms-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  if(S.connected) runDetect();
+}
+function applyFilter(type,btn){
+  S.filter=type;
+  document.querySelectorAll('.fb').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderResults();
+}
+function renderFilterRow(){
+  const techs=S.mode==='long'?LONG_TECHS:SHORT_TECHS;
+  const fr=document.getElementById('filter-row');
+  fr.innerHTML=`<button class="fb active" onclick="applyFilter('all',this)">전체</button>`+
+    techs.map(t=>`<button class="fb" onclick="applyFilter('${t.key}',this)">${t.name}</button>`).join('');
+}
+
+/* ══════════════════════════════════════
+   KIS 호출
+══════════════════════════════════════ */
+async function kisCall(path,trId,params={}){
+  const qs=new URLSearchParams({path,tr_id:trId,...params}).toString();
+  const res=await fetch('/api/kis?'+qs,{headers:{'X-Token':S.token,'X-Appkey':S.appkey,'X-Appsecret':S.appsecret}});
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  return res.json();
+}
+
+/* ══════════════════════════════════════
+   연결
+══════════════════════════════════════ */
+async function connectAPI(){
+  const key=document.getElementById('k-key').value.trim();
+  const sec=document.getElementById('k-sec').value.trim();
+  if(!key||!sec){toast('키를 모두 입력하세요','err');return;}
+  const btn=document.getElementById('btn-conn');
+  btn.textContent='연결 중...'; btn.disabled=true;
+  try{
+    const res=await fetch('/api/token',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({appkey:key,appsecret:sec})});
+    const data=await res.json();
+    if(data.access_token){
+      S.token=data.access_token; S.appkey=key; S.appsecret=sec; S.connected=true;
+      document.getElementById('dot').classList.add('on');
+      document.getElementById('ct').textContent='실시간';
+      document.getElementById('api-box').style.display='none';
+      toast('연결 성공!','ok');
+      renderFilterRow();
+      updateSessionBanner();
+      fetchMarket(); runDetect(); startTimer();
+    }else{toast('연결 실패: '+(data.msg1||'키 확인'),'err');btn.textContent='연결하기';btn.disabled=false;}
+  }catch(e){toast('오류: '+e.message,'err');btn.textContent='연결하기';btn.disabled=false;}
+}
+
+/* ══════════════════════════════════════
+   시장 지수
+══════════════════════════════════════ */
+async function fetchMarket(){
+  if(!S.connected) return;
+  try{const d=await kisCall('/uapi/domestic-stock/v1/quotations/inquire-index-price','FHPUP02100000',{FID_COND_MRKT_DIV_CODE:'U',FID_INPUT_ISCD:'0001'});if(d.output){const v=parseFloat(d.output.bstp_nmix_prpr),c=parseFloat(d.output.bstp_nmix_prdy_ctrt);document.getElementById('m-kp').textContent=fmt(Math.round(v));const el=document.getElementById('m-kp-c');el.textContent=(c>=0?'+':'')+c.toFixed(2)+'%';el.className='mi-c '+(c>=0?'up':'dn');}}catch(e){}
+  try{const d=await kisCall('/uapi/domestic-stock/v1/quotations/inquire-index-price','FHPUP02100000',{FID_COND_MRKT_DIV_CODE:'U',FID_INPUT_ISCD:'1001'});if(d.output){const v=parseFloat(d.output.bstp_nmix_prpr),c=parseFloat(d.output.bstp_nmix_prdy_ctrt);document.getElementById('m-kd').textContent=fmt(Math.round(v));const el=document.getElementById('m-kd-c');el.textContent=(c>=0?'+':'')+c.toFixed(2)+'%';el.className='mi-c '+(c>=0?'up':'dn');}}catch(e){}
+  try{const d=await kisCall('/uapi/overseas-price/v1/quotations/inquire-price','HHDFS00000300',{AUTH:'',EXCD:'NAS',SYMB:'QQQ'});if(d.output){const v=parseFloat(d.output.last||0),c=parseFloat(d.output.diff||0);document.getElementById('m-nq').textContent=fmtUSD(v);const el=document.getElementById('m-nq-c');el.textContent=(c>=0?'+':'')+c.toFixed(2)+'%';el.className='mi-c '+(c>=0?'up':'dn');}}catch(e){}
+  try{const d=await kisCall('/uapi/overseas-price/v1/quotations/inquire-price','HHDFS00000300',{AUTH:'',EXCD:'FX',SYMB:'USDKRW'});if(d.output)document.getElementById('m-fx').textContent=fmt(Math.round(parseFloat(d.output.last||0)));}catch(e){}
+  document.getElementById('m-time').textContent=nowStr();
+}
+
+/* ══════════════════════════════════════
+   메인 탐지
+══════════════════════════════════════ */
+async function runDetect(){
+  if(!S.connected) return;
+  const el=document.getElementById('list-detect');
+  updateSessionBanner();
+  const notes=getDataNote();
+  const noteHtml=notes.length?`<div style="font-size:11px;color:var(--t3);margin-bottom:8px;padding:6px 10px;background:var(--bg3);border-radius:var(--rs)">${notes.join(' · ')}</div>`:'';
+  el.innerHTML=noteHtml+`<div class="prog-box"><div class="prog-t" id="prog-t">종목 목록 수집 중...</div><div class="prog-track"><div class="prog-fill" id="prog-f" style="width:5%"></div></div></div>`;
+  try{
+    let results=[];
+    if(S.market==='KR'||S.market==='ALL'){
+      setProg('국내 종목 이평선 분석 중...',25);
+      const kr=await detectKR();
+      results=[...results,...kr];
+    }
+    if(S.market==='US'||S.market==='ALL'){
+      setProg('나스닥 종목 이평선 분석 중...',60);
+      const us=await detectUS();
+      results=[...results,...us];
+    }
+    setProg('스코어링 완료!',100);
+    results.sort((a,b)=>b.score-a.score);
+    S.results=results.slice(0,30);
+    document.getElementById('badge').textContent=S.results.length;
+    document.getElementById('m-cnt').textContent=S.results.length;
+    setTimeout(()=>renderResults(),300);
+  }catch(e){
+    el.innerHTML=`<div class="empty"><div class="empty-i">⚠️</div><div class="empty-t">분석 실패: ${e.message}</div></div>`;
+  }
+}
+function setProg(txt,pct){
+  const t=document.getElementById('prog-t'),f=document.getElementById('prog-f');
+  if(t)t.textContent=txt; if(f)f.style.width=pct+'%';
+}
+
+/* ══════════════════════════════════════
+   국내 종목 탐지
+══════════════════════════════════════ */
+async function detectKR(){
+  const data=await kisCall('/uapi/domestic-stock/v1/ranking/volume','FHPST01710000',{
+    fid_cond_mrkt_div_code:'J',fid_cond_scr_div_code:'20171',fid_input_iscd:'0000',
+    fid_rank_sort_cls_code:'0',fid_input_cnt_1:'0',fid_prc_cls_code:'1',
+    fid_input_price_1:'',fid_input_price_2:'',fid_vol_cnt:'',
+    fid_trgt_cls_code:'0',fid_trgt_exls_cls_code:'0',fid_div_cls_code:'0',
+    fid_rsfl_rate1:'',fid_rsfl_rate2:'',
+  });
+  const raw=data.output||[];
+  if(!raw.length) return [];
+  const results=[];
+  const techs=S.mode==='long'?LONG_TECHS:SHORT_TECHS;
+  const minHit=parseInt(document.getElementById(S.mode==='long'?'cfg-long-min':'cfg-short-min').value)||2;
+  const minScore=parseInt(document.getElementById(S.mode==='long'?'cfg-long-score':'cfg-short-score').value)||30;
+
+  for(const s of raw.slice(0,S.mode==='long'?20:40)){
+    try{
+      const volInrt=parseFloat(s.vol_inrt||0);
+      const stockObj={
+        name:s.hts_kor_isnm||s.stck_shrn_iscd, code:s.stck_shrn_iscd,
+        price:parseInt(s.stck_prpr||0), change:parseFloat(s.prdy_ctrt||0),
+        volRatio:Math.max(1+volInrt/100,1), mkt:'KR'
+      };
+      let history=[];
+      try{
+        const hist=await kisCall('/uapi/domestic-stock/v1/quotations/inquire-daily-itemchartprice','FHKST03010100',{
+          FID_COND_MRKT_DIV_CODE:'J',FID_INPUT_ISCD:s.stck_shrn_iscd,
+          FID_INPUT_DATE_1:getDateStr(-180),FID_INPUT_DATE_2:getDateStr(0),
+          FID_PERIOD_DIV_CODE:'D',FID_ORG_ADJ_PV:'0',
+        });
+        history=hist.output2||[];
+      }catch(e){}
+      const result=applyTechs(stockObj,history,techs);
+      if(result.hitCount>=minHit&&result.score>=minScore) results.push(result);
+    }catch(e){}
+  }
+  return results;
+}
+
+/* ══════════════════════════════════════
+   나스닥 종목 탐지
+══════════════════════════════════════ */
+async function detectUS(){
+  const data=await kisCall('/uapi/overseas-price/v1/quotations/inquire-search','HHDFS76410000',{
+    AUTH:'',EXCD:'NAS',CO_YN_PRICECUR:'',CO_ST_PRICECUR:'',CO_EN_PRICECUR:'',
+    CO_YN_RATE:'',CO_ST_RATE:'',CO_EN_RATE:'',
+    CO_YN_VOLUME:'Y',CO_ST_VOLUME:'200000',CO_EN_VOLUME:'',
+    CO_YN_AMT:'',CO_ST_AMT:'',CO_EN_AMT:'',
+    CO_YN_EPS:'',CO_ST_EPS:'',CO_EN_EPS:'',CO_YN_PER:'',CO_ST_PER:'',CO_EN_PER:'',KEYB:'',
+  });
+  const raw=data.output2||data.output||[];
+  if(!raw.length) return [];
+  const results=[];
+  const techs=S.mode==='long'?LONG_TECHS:SHORT_TECHS;
+  const minHit=parseInt(document.getElementById(S.mode==='long'?'cfg-long-min':'cfg-short-min').value)||2;
+  const minScore=parseInt(document.getElementById(S.mode==='long'?'cfg-long-score':'cfg-short-score').value)||30;
+
+  for(const s of raw.slice(0,S.mode==='long'?15:30)){
+    try{
+      const symb=s.symb||s.stck_shrn_iscd;
+      const stockObj={
+        name:s.name||symb, code:symb,
+        price:parseFloat(s.last||0), change:parseFloat(s.diff_rate||0),
+        volRatio:1.5, mkt:'US'
+      };
+      let history=[];
+      try{
+        const hist=await kisCall('/uapi/overseas-price/v1/quotations/inquire-daily-chartprice','HHDFS76240000',{
+          FID_COND_MRKT_DIV_CODE:'N',FID_INPUT_ISCD:symb,
+          FID_INPUT_DATE_1:getDateStr(-180),FID_INPUT_DATE_2:getDateStr(0),
+          FID_PERIOD_DIV_CODE:'D',
+        });
+        history=hist.output2||[];
+      }catch(e){}
+      const result=applyTechs(stockObj,history,techs);
+      if(result.hitCount>=minHit&&result.score>=minScore) results.push(result);
+    }catch(e){}
+  }
+  return results;
+}
+
+/* ══════════════════════════════════════
+   기법 적용 + 스코어링
+══════════════════════════════════════ */
+function applyTechs(stockObj,history,techs){
+  const techResults=techs.map(t=>{
+    try{
+      const r=t.check(history,stockObj);
+      return {...t,...r};
+    }catch(e){
+      return {...t,hit:false,score:0,why:'계산 오류: '+e.message};
+    }
+  });
+
+  const hitTechs=techResults.filter(t=>t.hit);
+  const totalScore=Math.min(techResults.reduce((a,t)=>a+(t.score||0),0),100);
+  const grade=totalScore>=75?'S':totalScore>=55?'A':totalScore>=35?'B':'C';
+
+  // 매수/매도/손절가
+  const p=stockObj.price;
+  let sellMult,stopMult,holdPeriod,expectReturn,risk;
+  if(S.mode==='long'){
+    if(grade==='S'){sellMult=1.5;stopMult=0.92;holdPeriod='6개월~2년';expectReturn='+50~200%';risk='중저';}
+    else if(grade==='A'){sellMult=1.3;stopMult=0.93;holdPeriod='3~6개월';expectReturn='+30~80%';risk='중';}
+    else if(grade==='B'){sellMult=1.15;stopMult=0.94;holdPeriod='1~3개월';expectReturn='+15~40%';risk='중고';}
+    else{sellMult=1.08;stopMult=0.95;holdPeriod='관망';expectReturn='+5~15%';risk='고';}
+  }else{
+    if(grade==='S'){sellMult=1.07;stopMult=0.97;holdPeriod='당일~2일';expectReturn='+5~8%';risk='중';}
+    else if(grade==='A'){sellMult=1.05;stopMult=0.97;holdPeriod='당일';expectReturn='+3~6%';risk='중고';}
+    else if(grade==='B'){sellMult=1.03;stopMult=0.98;holdPeriod='당일 내';expectReturn='+2~4%';risk='고';}
+    else{sellMult=1.02;stopMult=0.985;holdPeriod='관망';expectReturn='+1~2%';risk='매우고';}
+  }
+
+  // AI 자동 설명 생성
+  const aiExplain=generateExplain(hitTechs,totalScore,grade,S.mode,stockObj);
+
+  return {
+    ...stockObj, grade, score:totalScore,
+    hitCount:hitTechs.length, totalTechs:techs.length,
+    techResults, hitTechs,
+    buyPrice:p, sellPrice:p*sellMult, stopPrice:p*stopMult,
+    holdPeriod, expectReturn, risk,
+    aiExplain, mode:S.mode,
+  };
+}
+
+/* ══════════════════════════════════════
+   AI 설명 자동 생성
+══════════════════════════════════════ */
+function generateExplain(hitTechs,score,grade,mode,s){
+  if(!hitTechs.length) return '탐지된 기법 없음 — 관망을 권장합니다.';
+  const lines=[];
+  const gradeMsg=grade==='S'?'강력 매수 신호':grade==='A'?'매수 고려 신호':grade==='B'?'관심 종목':' 관망 권장';
+
+  lines.push(`${s.name}은 총 ${hitTechs.length}가지 기법이 충족되어 ${gradeMsg}(${score}점)입니다.`);
+
+  if(hitTechs.length===1){
+    lines.push(`현재 【${hitTechs[0].name}】 한 가지만 충족 — 추가 기법 충족 시까지 소량 관심 권장.`);
+  }else{
+    const names=hitTechs.map(t=>`【${t.name}】`).join(' + ');
+    lines.push(`충족 기법: ${names}`);
+  }
+
+  // 핵심 기법 설명
+  hitTechs.slice(0,2).forEach(t=>{
+    lines.push(`▸ ${t.name}: ${t.why}`);
+  });
+
+  if(mode==='long'){
+    if(hitTechs.find(t=>t.key==='reverse_to_align')){
+      lines.push('⚠️ 역배열→정배열 전환 초기 — 이 구간은 SOXL·반도체 폭등 직전과 동일한 패턴입니다. 분할 매수 전략 권장.');
+    }
+    if(hitTechs.find(t=>t.key==='ma_alignment'&&t.score>=25)){
+      lines.push('✅ 완전 정배열 달성 — 상승 추세 강력 확인. 추세 유지 기간 동안 홀딩 유리.');
+    }
+  }else{
+    if(hitTechs.find(t=>t.key==='vol_explosion')){
+      lines.push('⚡ 거래량 폭발 감지 — 단타 진입 최적 조건. 단, 고점 매수 리스크 주의.');
+    }
+  }
+  return lines.join('\n');
+}
+
+/* ══════════════════════════════════════
+   렌더링
+══════════════════════════════════════ */
+function renderResults(){
+  const filtered=S.filter==='all'?S.results:S.results.filter(s=>s.techResults.find(t=>t.key===S.filter&&t.hit));
+  const el=document.getElementById('list-detect');
+  if(!filtered.length){
+    el.innerHTML='<div class="empty"><div class="empty-t">조건에 맞는 종목 없음<br>설정에서 최소 충족 기법 수를 낮춰보세요</div></div>';
+    return;
+  }
+  el.innerHTML=filtered.map((s,i)=>buildCard(s,i)).join('');
+}
+
+function buildCard(s,i){
+  const isUS=s.mkt==='US';
+  const priceStr=isUS?fmtUSD(s.price):fmt(s.price)+'원';
+  const buyStr=isUS?fmtUSD(Math.round(s.buyPrice*100)/100):fmt(Math.round(s.buyPrice))+'원';
+  const sellStr=isUS?fmtUSD(Math.round(s.sellPrice*100)/100):fmt(Math.round(s.sellPrice))+'원';
+  const stopStr=isUS?fmtUSD(Math.round(s.stopPrice*100)/100):fmt(Math.round(s.stopPrice))+'원';
+  const mktLabel=isUS?'나스닥':'코스피/코스닥';
+  const modeLabel=s.mode==='long'?'장기':'단타';
+  const gradeLabel=s.grade==='S'?'강력매수':s.grade==='A'?'매수고려':s.grade==='B'?'관심':'관망';
+  const riskColor=s.risk==='중저'||s.risk==='중'?'pos':s.risk==='중고'?'warn':'neg';
+
+  // 기법 태그 (충족/미충족 구분)
+  const techTags=s.techResults.map(t=>`<span class="tech ${t.hit?'hit':'miss'}">${t.hit?'✓':''} ${t.name}</span>`).join('');
+
+  // 기법 상세
+  const techDetails=s.techResults.map(t=>`
+<div class="td-item ${t.hit?'hit':'miss'}">
+  <div class="td-top">
+    <span class="td-name ${t.hit?'hit':'miss'}">${t.name}</span>
+    <span class="td-badge ${t.hit?'hit':'miss'}">${t.hit?`+${t.score}점`:'미충족'}</span>
+  </div>
+  <div class="td-desc">${t.desc}</div>
+  <div class="td-why">${t.why||''}</div>
+</div>`).join('');
+
+  // AI 설명 (줄바꿈 처리)
+  const explainHtml=s.aiExplain.split('\n').map(l=>`<div>${l}</div>`).join('');
+
+  return `
+<div class="card ${s.grade}" onclick="toggleDetail(${i})">
+  <div class="card-top">
+    <div>
+      <div class="sn">${s.name}</div>
+      <div class="sc-meta">${s.code} · ${mktLabel} · ${modeLabel}</div>
+    </div>
+    <div style="text-align:right">
+      <div class="grade ${s.grade}">${s.grade}</div>
+      <div class="grade-sub">${s.score}점 · ${gradeLabel}</div>
+    </div>
+  </div>
+
+  <!-- 충족 기법 카운터 -->
+  <div class="match-bar">
+    <div class="match-count">${s.hitCount}/${s.totalTechs}</div>
+    <div style="flex:1">
+      <div class="match-label">기법 충족 · ${s.hitTechs.map(t=>t.name).join(', ')||'없음'}</div>
+      <div class="match-score-bar" style="margin-top:4px"><div class="match-score-fill" style="width:${s.score}%"></div></div>
+    </div>
+  </div>
+
+  <div class="techs">${techTags}</div>
+
+  <div class="pr-row">
+    <span class="pr-m">${priceStr}</span>
+    <span class="pr-c ${s.change>=0?'up':'dn'}">${s.change>=0?'▲':'▼'} ${Math.abs(s.change).toFixed(2)}%</span>
+  </div>
+
+  <div class="trade-box">
+    <div class="tb"><div class="tb-l">매수가</div><div class="tb-v buy">${buyStr}</div><div class="tb-s">현재가 기준</div></div>
+    <div class="tb"><div class="tb-l">목표 매도가</div><div class="tb-v sell">${sellStr}</div><div class="tb-s">${s.expectReturn}</div></div>
+    <div class="tb"><div class="tb-l">손절가</div><div class="tb-v stop">${stopStr}</div><div class="tb-s">리스크 제한</div></div>
+  </div>
+
+  <div class="pred-grid">
+    <div class="pg"><div class="pg-l">예상 수익률</div><div class="pg-v pos">${s.expectReturn}</div></div>
+    <div class="pg"><div class="pg-l">보유 기간</div><div class="pg-v warn">${s.holdPeriod}</div></div>
+    <div class="pg"><div class="pg-l">위험도</div><div class="pg-v ${riskColor}">${s.risk}</div></div>
+    <div class="pg"><div class="pg-l">투자 등급</div><div class="pg-v ${s.grade==='S'||s.grade==='A'?'pos':'warn'}">${gradeLabel}</div></div>
+  </div>
+
+  <div class="detail" id="d-${i}">
+    <!-- AI 자동 설명 -->
+    <div class="d-sec">
+      <div class="d-t">🤖 AI 탐지 설명</div>
+      <div class="ai-explain">
+        <div class="ai-explain-body">${explainHtml}</div>
+      </div>
+    </div>
+    <!-- 기법별 상세 -->
+    <div class="d-sec">
+      <div class="d-t">📊 기법별 상세 분석</div>
+      <div class="tech-detail">${techDetails}</div>
+    </div>
+    <button class="btn-ai" onclick="event.stopPropagation();aiDeep('${s.name}','${s.code}','${s.mkt}','${s.mode}','${s.hitTechs.map(t=>t.name).join(',')}')">🔍 Claude AI 심층 분석 (실시간 뉴스 포함)</button>
+  </div>
+</div>`;
+}
+
+function toggleDetail(i){const el=document.getElementById('d-'+i);if(el)el.classList.toggle('open')}
+
+/* ══════════════════════════════════════
+   급등 종목
+══════════════════════════════════════ */
+async function fetchSurge(){
+  if(!S.connected){toast('API 연결 필요','err');return;}
+  const el=document.getElementById('list-surge');
+  el.innerHTML='<div class="loading"><div class="spin"></div><div class="lt">조회 중...</div></div>';
+  let html='';
+  try{
+    if(S.market==='KR'||S.market==='ALL'){
+      const d=await kisCall('/uapi/domestic-stock/v1/ranking/fluctuation','FHPST01710000',{
+        fid_cond_mrkt_div_code:'J',fid_cond_scr_div_code:'20171',fid_input_iscd:'0000',
+        fid_rank_sort_cls_code:'0',fid_input_cnt_1:'0',fid_prc_cls_code:'1',
+        fid_input_price_1:'',fid_input_price_2:'',fid_vol_cnt:'',
+        fid_trgt_cls_code:'0',fid_trgt_exls_cls_code:'0',fid_div_cls_code:'0',fid_rsfl_rate1:'2',fid_rsfl_rate2:'',
+      });
+      (d.output||[]).slice(0,15).forEach(s=>{
+        const chg=parseFloat(s.prdy_ctrt||0),g=chg>=8?'S':chg>=5?'A':chg>=3?'B':'C';
+        html+=`<div class="card ${g}"><div class="card-top"><div><div class="sn">${s.hts_kor_isnm||s.stck_shrn_iscd}</div><div class="sc-meta">${s.stck_shrn_iscd} · 코스피/코스닥</div></div><div class="grade ${g}">${g}</div></div><div class="pr-row"><span class="pr-m">${fmt(parseInt(s.stck_prpr||0))}원</span><span class="pr-c up">▲ +${chg.toFixed(2)}%</span></div></div>`;
+      });
+    }
+    if(S.market==='US'||S.market==='ALL'){
+      const d=await kisCall('/uapi/overseas-price/v1/quotations/inquire-search','HHDFS76410000',{
+        AUTH:'',EXCD:'NAS',CO_YN_PRICECUR:'',CO_ST_PRICECUR:'',CO_EN_PRICECUR:'',
+        CO_YN_RATE:'Y',CO_ST_RATE:'2',CO_EN_RATE:'',CO_YN_VOLUME:'Y',CO_ST_VOLUME:'100000',CO_EN_VOLUME:'',
+        CO_YN_AMT:'',CO_ST_AMT:'',CO_EN_AMT:'',CO_YN_EPS:'',CO_ST_EPS:'',CO_EN_EPS:'',CO_YN_PER:'',CO_ST_PER:'',CO_EN_PER:'',KEYB:'',
+      });
+      (d.output2||d.output||[]).slice(0,15).forEach(s=>{
+        const chg=parseFloat(s.diff_rate||0),g=chg>=8?'S':chg>=5?'A':chg>=3?'B':'C';
+        html+=`<div class="card ${g}"><div class="card-top"><div><div class="sn">${s.name||s.symb}</div><div class="sc-meta">${s.symb} · 나스닥</div></div><div class="grade ${g}">${g}</div></div><div class="pr-row"><span class="pr-m">${fmtUSD(parseFloat(s.last||0))}</span><span class="pr-c up">▲ +${chg.toFixed(2)}%</span></div></div>`;
+      });
+    }
+    el.innerHTML=html||'<div class="empty"><div class="empty-t">데이터 없음</div></div>';
+  }catch(e){el.innerHTML=`<div class="empty"><div class="empty-t">조회 실패: ${e.message}</div></div>`;}
+}
+
+/* ══════════════════════════════════════
+   뉴스 분석
+══════════════════════════════════════ */
+async function fetchNews(){
+  const ck=document.getElementById('claude-key').value.trim();
+  const el=document.getElementById('list-news');
+  if(!ck){toast('설정 탭에서 Claude API 키를 입력하세요','err');return;}
+  el.innerHTML='<div class="loading"><div class="spin"></div><div class="lt">뉴스 분석 중...</div></div>';
+  const stocks=S.results.slice(0,5).map(s=>s.name).join(', ')||'없음';
+  const modeLabel=S.mode==='long'?'장기투자':'단타';
+  try{
+    const res=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json','X-Claude-Key':ck},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        messages:[{role:'user',content:`오늘 한국/미국 주식시장 ${modeLabel} 관련 주요 뉴스 5개를 검색하고 분석해주세요. 탐지종목: ${stocks}
+JSON 배열만 반환(코드블록 없이):
+[{"title":"한글제목","summary":"2-3줄요약","impact":"strong|mid|low","impactLabel":"강한호재|중간호재|약한호재","category":"카테고리","stocks":["종목1","종목2"]}]`}]})});
+    const data=await res.json();
+    const text=(data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('');
+    const news=JSON.parse(text.replace(/```json|```/g,'').trim());
+    el.innerHTML=news.map(n=>`<div class="nc"><div class="nt"><div class="ntx">${n.title}</div><span class="imp ${n.impact}">${n.impactLabel}</span></div><div class="ns">${n.summary}</div><div class="nf"><div class="stags">${(n.stocks||[]).map(s=>`<span class="stag">${s}</span>`).join('')}</div><span class="ctag">${n.category||''}</span></div></div>`).join('');
+  }catch(e){el.innerHTML=`<div class="empty"><div class="empty-t">분석 실패: ${e.message}</div></div>`;}
+}
+
+/* ══════════════════════════════════════
+   Claude AI 심층 분석
+══════════════════════════════════════ */
+async function aiDeep(name,code,mkt,mode,techs){
+  const ck=document.getElementById('claude-key').value.trim();
+  if(!ck){toast('설정 탭에서 Claude API 키 입력','err');return;}
+  toast(`${name} 심층 분석 중...`);
+  const mktL=mkt==='US'?'나스닥':'코스피/코스닥';
+  const modeL=mode==='long'?'장기투자':'단타';
+  try{
+    const res=await fetch('/api/claude',{method:'POST',headers:{'Content-Type':'application/json','X-Claude-Key':ck},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1200,
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        messages:[{role:'user',content:`${mktL} ${modeL} 종목 ${name}(${code}) 심층분석 요청.
+충족된 기법: ${techs}
+최근 뉴스를 검색한 뒤 아래 항목을 한국어로 분석해주세요:
+1. 현재 급등/상승의 구체적 이유
+2. ${mode==='long'?'장기 성장 가능성 (업종, 실적, 테마)':'단기 지속 가능성 (오늘/내일)'}
+3. 핵심 리스크 (반드시 포함)
+4. ${mode==='long'?'6개월/1년 목표가 예상':'오늘 단기 목표가 + 손절 기준'}
+5. 최종 투자 의견 한 줄
+
+각 항목 번호와 함께 명확히 구분해서 작성.`}]})});
+    const data=await res.json();
+    const text=(data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('');
+    alert(`📊 ${name} Claude AI 심층 분석 (${modeL})\n\n${text}`);
+  }catch(e){toast('분석 실패: '+e.message,'err');}
+}
+
+/* ══════════════════════════════════════
+   장 시간 관리
+══════════════════════════════════════ */
+
+// 서머타임 여부 (3월 둘째 일요일 ~ 11월 첫째 일요일)
+function isSummerTime(){
+  const now=new Date();
+  const year=now.getFullYear();
+  // 3월 둘째 일요일
+  const mar=new Date(year,2,1);
+  const marSun2=new Date(year,2,1+(7-mar.getDay())%7+7);
+  // 11월 첫째 일요일
+  const nov=new Date(year,10,1);
+  const novSun1=new Date(year,10,1+(7-nov.getDay())%7);
+  return now>=marSun2&&now<novSun1;
+}
+
+// 현재 세션 정보 반환
+function getSession(){
+  const now=new Date();
+  const h=now.getHours(), m=now.getMinutes();
+  const hm=h*100+m; // 예: 9시30분 = 930
+  const day=now.getDay(); // 0=일, 6=토
+
+  // 주말이면 모든 시장 휴장
+  if(day===0||day===6){
+    return {
+      kr:'휴장 (주말)',      krOpen:false, krSession:'closed',
+      us:'휴장 (주말)',      usOpen:false, usSession:'closed',
+      color:'#555'
+    };
+  }
+
+  // ── 국내 세션 판단 ──
+  let krSession, krLabel, krOpen=false;
+  if(hm>=830&&hm<900){
+    krSession='pre'; krLabel='국내 🟡 동시호가 (08:30~09:00)'; krOpen=true;
+  } else if(hm>=900&&hm<1520){
+    krSession='main'; krLabel='국내 🟢 정규장 (09:00~15:20)'; krOpen=true;
+  } else if(hm>=1520&&hm<1530){
+    krSession='closing'; krLabel='국내 🟡 종가 동시호가 (15:20~15:30)'; krOpen=true;
+  } else if(hm>=1540&&hm<1600){
+    krSession='after1'; krLabel='국내 🟠 시간외 종가 (15:40~16:00)'; krOpen=true;
+  } else if(hm>=1600&&hm<1800){
+    krSession='after2'; krLabel='국내 🟠 시간외 단일가 (16:00~18:00)'; krOpen=true;
+  } else {
+    krSession='closed'; krLabel='국내 ⚫ 장 마감'; krOpen=false;
+  }
+
+  // ── 미국 세션 판단 (한국시간 기준) ──
+  const dst=isSummerTime();
+  // 서머타임: 프리17~22:30, 정규22:30~익일05:00, 애프터05~07
+  // 동절기:   프리18~23:30, 정규23:30~익일06:00, 애프터06~08
+  let usSession, usLabel, usOpen=false;
+  const preStart  = dst ? 1700 : 1800;
+  const mainStart = dst ? 2230 : 2330;
+  const mainEnd   = dst ?  500 :  600;  // 다음날 새벽
+  const afterEnd  = dst ?  700 :  800;
+
+  // 새벽 구간 (0~mainEnd, afterEnd)
+  if(hm<afterEnd){
+    // 새벽 — 정규장 또는 애프터
+    if(hm<mainEnd){ usSession='main'; usLabel=`미국 🟢 정규장 (~${dst?'05:00':'06:00'})`; usOpen=true; }
+    else { usSession='after'; usLabel=`미국 🟠 애프터마켓 (~${dst?'07:00':'08:00'})`; usOpen=true; }
+  } else if(hm>=preStart&&hm<mainStart){
+    usSession='pre'; usLabel=`미국 🟡 프리마켓 (${dst?'17:00~22:30':'18:00~23:30'})`; usOpen=true;
+  } else if(hm>=mainStart){
+    usSession='main'; usLabel=`미국 🟢 정규장 (${dst?'22:30~':'23:30~'})`; usOpen=true;
+  } else {
+    usSession='closed'; usLabel='미국 ⚫ 장 마감'; usOpen=false;
+  }
+
+  const anyOpen=krOpen||usOpen;
+  return {
+    kr:krLabel, krOpen, krSession,
+    us:usLabel, usOpen, usSession,
+    color: anyOpen ? (krOpen&&usOpen?'#22c55e':krOpen?'#3b82f6':'#f97316') : '#555',
+    dst
+  };
+}
+
+// 세션 배너 갱신
+function updateSessionBanner(){
+  const sess=getSession();
+  const bar=document.getElementById('session-bar');
+  if(!bar) return;
+
+  // 현재 선택된 시장에 맞게 표시
+  let lines=[];
+  if(S.market==='ALL'||S.market==='KR') lines.push(sess.kr);
+  if(S.market==='ALL'||S.market==='US') lines.push(sess.us);
+
+  bar.style.display='block';
+  bar.style.background=sess.color+'22';
+  bar.style.color=sess.color;
+  bar.style.borderBottom=`1px solid ${sess.color}44`;
+  bar.innerHTML=lines.join(' &nbsp;|&nbsp; ');
+
+  // 세션 상태를 전역에 저장
+  S.session=sess;
+}
+
+// 시장 상태에 따른 데이터 소스 안내
+function getDataNote(){
+  const sess=S.session||getSession();
+  const notes=[];
+  if(S.market==='KR'||S.market==='ALL'){
+    if(!sess.krOpen) notes.push('국내: 장 마감 — 전일 종가 기준 과거 데이터로 분석');
+    else if(sess.krSession==='main') notes.push('국내: 정규장 — 실시간 데이터');
+    else notes.push('국내: 시간외 — 제한된 데이터');
+  }
+  if(S.market==='US'||S.market==='ALL'){
+    if(!sess.usOpen) notes.push('미국: 장 마감 — 직전 거래일 데이터로 분석');
+    else if(sess.usSession==='main') notes.push('미국: 정규장 — 실시간 데이터');
+    else notes.push('미국: 프리/애프터 — 제한된 데이터');
+  }
+  return notes;
+}
+
+/* ══════════════════════════════════════
+   자동 갱신
+══════════════════════════════════════ */
+function startTimer(){
+  if(S.timer)clearInterval(S.timer);
+  const sec=parseInt(document.getElementById('inp-iv').value)*1000;
+  // 세션 배너는 1분마다 갱신
+  setInterval(updateSessionBanner, 60000);
+  S.timer=setInterval(()=>{fetchMarket();runDetect();},sec);
+}
+
+// 초기화
+renderFilterRow();
+updateSessionBanner();
+</script>
+</body>
+</html>
